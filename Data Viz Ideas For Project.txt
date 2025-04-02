@@ -1,36 +1,36 @@
 Data Viz Ideas For Project
 
-1. Use seed results csv to create overarching viz of proportion of wins per seed
+(Max) 1. Use seed results csv to create overarching viz of proportion of wins per seed
 
-2. Use public picks csv to do the same as seed results
+(Max) 2. Use public picks csv to do the same as seed results
 
-3. Use conference results csv to show how tourney winners do in actual tourney
+(Jon) 3. Use conference results csv to show how tourney winners do in actual tourney
 
-4. Heatmap with tourney location and upsets
+(Gaurav) 4. Heatmap with tourney location and upsets
 
-5. Use upset seed csv to show trends of upsets over time
+(Gaurav) 5. Use upset seed csv to show trends of upsets over time
 
-6. Linechart to show how fast the teams push the pace, and see correlation to winning in tourney through EvanMiya csv
+(Nathan) 6. Linechart to show how fast the teams push the pace, and see correlation to winning in tourney through EvanMiya csv
 
-7. We can use heatcheckratings csv to show how accurate they are at predicting the tourney
+(Gaurav) 7. We can use heatcheckratings csv to show how accurate they are at predicting the tourney
 
-8. By year/individual team see seed differential for upsets and which are most common (upset seed info csv)
+(Nathan) 8. By year/individual team see seed differential for upsets and which are most common (upset seed info csv)
 
-9. kenpalm from preseason to end of season to see which teams have been good the whole year, or burst onto the scene late. see which categories of teams do better in the tourney
+(Nathan) 9. kenpalm from preseason to end of season to see which teams have been good the whole year, or burst onto the scene late. see which categories of teams do better in the tourney
 
-10. Are teams that are really good at home in the reg season good in the tourney or worse than teams who are better on the road in the reg season
+(Jon) 10. Are teams that are really good at home in the reg season good in the tourney or worse than teams who are better on the road in the reg season
 
-11. Do teams who have to travel long distances for tooruney play better or worse compared to teams who travel short distance?
+(Gaurav) 11. Do teams who have to travel long distances for tooruney play better or worse compared to teams who travel short distance?
 
-12. With the coach's data, do a cut off point for experience. See if experienced coach's make a difference in winning in tourney
+(Jon) 12. With the coach's data, do a cut off point for experience. See if experienced coach's make a difference in winning in tourney
 
-13. Team rankings csv. Strength of schedule and record for top 25. See if teams with more Q1 wins do better in toruney than ones without. Can use resumes csv as well.
+(Max) 13. Team rankings csv. Strength of schedule and record for top 25. See if teams with more Q1 wins do better in toruney than ones without. Can use resumes csv as well.
 
-14. Kenpalm: age of players. Does a younger starting 5 play better in tourney than an older starting 5?
+(Nathan) 14. Kenpalm: age of players. Does a younger starting 5 play better in tourney than an older starting 5?
 
-15. Which teams do better in the tournament: ones who shoot more 3s or ones who shoot no 3s?
+(Max) 15. Which teams do better in the tournament: ones who shoot more 3s or ones who shoot no 3s?
 
-16. Shot heat map of the best teams and where they typically shoot from.
+(Gaurav) 16. Shot heat map of the best teams and where they typically shoot from.
 
-17. Visual to show if teams who pass the ball more do better or not?
+(Jon) 17. Visual to show if teams who pass the ball more do better or not?
 
