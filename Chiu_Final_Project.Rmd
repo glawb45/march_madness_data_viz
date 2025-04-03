@@ -1,0 +1,36 @@
+---
+title: "Data_Viz_Final_Project"
+author: "Gaurav Law"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+```
+
+
+```{r}
+
+# Define folder path
+folder_path <- "~/Desktop/CSE 5544/Final Project/March Madness Data"
+
+# Get a list of all CSV files in the folder
+csv_files <- list.files(path = folder_path, pattern = "*.csv", full.names = TRUE)
+
+# Create a named list where each CSV is read into its own element
+csv_data <- setNames(lapply(csv_files, read_csv), tools::file_path_sans_ext(basename(csv_files)))
+
+# Each dataset can now be accessed as csv_data$filename
+print(names(csv_data))  # Print dataset names
+
+
+```
+
