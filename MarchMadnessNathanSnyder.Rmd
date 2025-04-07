@@ -1,0 +1,242 @@
+---
+title: "MarchMadness"
+author: "Nathan Snyder.1896"
+date: "2025-04-02"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+```
+
+```{r}
+UpsetSeedInfo = read.csv("Upset Seed Info.csv")
+EvanMiya <- read.csv("EvanMiya.csv")
+TeamResults <- read.csv("Team Results.csv")
+KenPom <- read.csv("KenPom Barttorvik.csv")
+```
+
+
+```{r}
+#number of upets per year with difference 5 or more
+
+numBigUpsetsPerYr <- UpsetSeedInfo %>% 
+  filter(SEED.DIFF >= 5) %>%  
+  group_by(YEAR) %>%       
+  summarise(upset_count = n())
+
+ggplot(numBigUpsetsPerYr, 
+       aes(x = YEAR,
+           y = upset_count)) +
+  geom_col(fill = "steelblue") +
+  geom_text(aes(label = upset_count), vjust = -0.3) +
+  labs(
+    title = "Number of upsets with seed diff >= 5 by year",
+    x = "Year",
+    y = "Number of upsets with seed diff >= 5 "
+  )
+
+```
+^(not used in presentation)
+
+```{r}
+#look at most common differential for upsets
+
+diffCount <- UpsetSeedInfo%>%  
+  group_by(SEED.DIFF) %>%       
+  summarise(upset_count = n())
+
+upsetbar = ggplot(diffCount, 
+       aes(x = SEED.DIFF,
+           y = upset_count)) +
+  geom_col(fill = "steelblue") +
+  scale_x_continuous(
+    breaks = diffCount$SEED.DIFF
+  ) +
+  labs(
+    title = "Number of Upsets All Time by Seed Difference",
+    x = "Seed Difference",
+    y = "Number of Upsets"
+  ) +
+  theme_minimal()
+
+ggsave("upset_barplot.png", plot = upsetbar, width = 8, height = 5, dpi = 300)
+
+```
+
+
+```{r}
+upset_counts <- UpsetSeedInfo %>%
+  group_by(YEAR, SEED.DIFF) %>%
+  summarise(upset_count = n(), .groups = "drop")
+
+upsetheatmap = ggplot(upset_counts, aes(x = factor(YEAR), y = SEED.DIFF, fill = upset_count)) +
+  geom_tile() +
+  scale_fill_gradient(low = "gray90", high = "red") +   
+  labs(
+    x = "Year",
+    y = "Seed Difference",
+    fill = "Upset Count",
+    title = "Upsets by Seed Difference & Year"
+  ) +
+  theme_minimal() 
+
+ggsave("upsetheat.png", plot = upsetheatmap, width = 8, height = 5, dpi = 300)
+```
+
+
+
+
+
+Look at team's preseason vs actual success
+
+
+Not used in presentation v
+```{r}
+KenPomPreseason <- read.csv("KenPom Preseason.csv")
+
+KenPomAll <- KenPom %>% 
+  inner_join(KenPomPreseason, by = c("TEAM", "YEAR", "TEAM.NO"))
+
+ggplot(KenPomAll, aes(x = PRESEASON.KADJ.EM, y = KADJ.EM)) +
+  geom_point(color = "blue", alpha = 0.7) +  
+  labs(title = "Preseason EM vs Actual EM",
+       x = "Preseason EM",
+       y = "Actual EM") +
+  theme_minimal()
+
+```
+
+
+
+```{r}
+#try regular EM - preseason EM?
+#nevermind this already exists - EM.change
+
+top10EMChange <- KenPomAll %>% 
+  arrange(desc(KADJ.EM.CHANGE)) %>% 
+  head(10) %>% 
+  select(TEAM, KADJ.EM.CHANGE)
+
+
+ggplot(top10EMChange, 
+       aes(x = reorder(as.factor(TEAM), -KADJ.EM.CHANGE),
+           y = KADJ.EM.CHANGE)) +
+  geom_col(fill = "steelblue") + 
+  labs(
+    title = "Top 10 teams in EM increase",
+    x = "Team",
+    y = "EM increase"
+  )
+
+```
+(not used in presentation)
+
+
+now show how this correlates to success
+
+```{r}
+#add column for "games won" - for each round, games won increases
+
+KenPomAll <- KenPomAll %>%
+  mutate(GamesWon = case_when(
+    ROUND.x == 68 | ROUND.x == 64 ~ "0",
+    ROUND.x == 32 ~ "1",
+    ROUND.x == 16 ~ "2",
+    ROUND.x == 8 ~ "3",
+    ROUND.x == 4 ~ "4",
+    ROUND.x == 2 ~ "5",
+    ROUND.x == 1 ~ "6"
+  ))
+
+
+EMboxplot <- ggplot(KenPomAll, aes(x = as.factor(GamesWon), y = KADJ.EM.CHANGE)) +
+  geom_boxplot(fill = "steelblue", alpha = 0.7) +
+  labs(title = "EM Change by Number of Games Won in Tournament",
+       x = "Games Won",
+       y = "EM Change") +
+  theme_minimal()
+
+ggsave("EMboxplot.png", plot = EMboxplot, width = 8, height = 5, dpi = 300)
+
+
+```
+
+
+```{r}
+EMscatter = ggplot(KenPomAll, aes(x = GamesWon, y = KADJ.EM.CHANGE)) +
+  geom_point(color = "blue", alpha = 0.7) +  
+  labs(title = "Number of Games Won in Tournament vs EM Change",
+       x = "Games Won",
+       y = "EM Change") +
+  theme_minimal()
+
+ggsave("EMscatter.png", plot = EMscatter, width = 8, height = 5, dpi = 300)
+
+
+```
+There's obviously more data for the earlier rounds since less teams make it far, but still enough since the data is 2008-2024 total. It looks like there may be a correlation between more games won and a higher EM Change (increase). That is, teams that improve from preseason to regular season seem to have a better chance of making it farther in the tournament.
+
+
+
+Pace
+```{r}
+
+MiyaPom <- EvanMiya %>% 
+  inner_join(KenPomAll, by = c("TEAM", "YEAR"))
+
+```
+
+
+
+```{r}
+#make scatter plot with win percentage vs pace adjust rank
+#^that would only work with regular season
+
+#you could also just see how many tournament games each team won each year
+
+
+PaceWinPct = ggplot(MiyaPom, aes(x = WIN., y = PACE.ADJUST)) +
+  geom_point(color = "blue", alpha = 0.7) +  # Scatter points
+  labs(title = "Pace Adjusted vs. Win Percentage (Regular Season)",
+       x = "Regular Season Win Percentage",
+       y = "Pace Adjusted") +
+  theme_minimal()
+
+ggsave("PaceWinPct.png", plot = PaceWinPct, width = 8, height = 5, dpi = 300)
+```
+
+```{r}
+MiyaPomNo2025 <- MiyaPom %>% 
+  filter(YEAR != 2025)
+
+PacevsGamesWon <- ggplot(MiyaPomNo2025, aes(x = GamesWon, y = `PACE.ADJUST`)) +
+  geom_jitter(color = "blue", alpha = 0.7) +  # Scatter points
+  labs(title = "Pace Adjusted vs. Games Won in Tournament",
+       x = "Games Won",
+       y = "Pace Adjusted") +
+  theme_minimal()
+
+ggsave("PaceGamesScatter.png", plot = PacevsGamesWon, width = 8, height = 5, dpi = 300)
+```
+
+
+
+
+
+Not used in slides v
+```{r}
+ggplot(MiyaPomNo2025, aes(x = GamesWon, y = KADJ.T)) +
+  geom_jitter(color = "blue", alpha = 0.7) +  # Scatter points
+  labs(title = "Tempo vs. Games Won in Tournament",
+       x = "Games Won",
+       y = "Tempo") +
+  theme_minimal()
+```
+
