@@ -2,7 +2,7 @@
 title: "Data_Viz_Final_Project"
 author: "Gaurav Law"
 date: "`r Sys.Date()`"
-output: pdf_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -10,17 +10,19 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-library(readr)
 library(tidyverse)
 library(ggplot2)
-library(ggmap)
+library(rvest)
+library(tidyr)
+library(rsconnect)
+library(shiny)
 ```
 
 
 ```{r}
 
 # Define folder path
-folder_path <- "~/Desktop/CSE 5544/Final Project/March Madness Data"
+folder_path <- "March Madness Data"
 
 # Get a list of all CSV files in the folder
 csv_files <- list.files(path = folder_path, pattern = "*.csv", full.names = TRUE)
@@ -31,6 +33,215 @@ csv_data <- setNames(lapply(csv_files, read_csv), tools::file_path_sans_ext(base
 # Each dataset can now be accessed as csv_data$filename
 print(names(csv_data))  # Print dataset names
 
+```
+
+
+# 5. Upset Seed Info
+
+```{r}
+upsets <- csv_data$`Upset Seed Info`
+
+upset_means <- upsets %>%
+  group_by(YEAR) %>%
+  summarise(Winner = round(mean(`SEED WON`),2),
+            Loser = round(mean(`SEED LOST`),2),
+            Difference = round(mean(`SEED DIFF`),2))
+
+vars <- upset_means %>%
+  pivot_longer(cols = c(Winner, Loser), names_to = "Variable", values_to = "Value")
+
+# Plot with ggplot
+ggplot(vars, aes(x = YEAR, y = Value, color = Variable)) +
+  geom_line(size = 1) + geom_point() +
+  labs(title = "Average Seed Outcomes by Year ", x = "Year", y = "Seed") + theme_minimal()
 
 ```
 
+# 11. Tournament Locations + Success
+
+```{r}
+locs <- csv_data$`Tournament Locations`
+seed_results <- csv_data$`Seed Results`
+locs %>% filter(TEAM == "Connecticut")
+locs_seeds <- locs %>%
+  left_join(seed_results, by = "SEED")
+
+colors_16 <- c( "green", "lightgreen", "magenta", "pink", "red", "orange", "yellow", "gold", "beige", "maroon", "brown", "cyan", "lightblue", "blue", "darkblue", "purple")
+
+
+locs_seeds %>%
+  filter(ROUND == 64) %>%
+  ggplot(aes(y = `DISTANCE (MI)`, x = `WIN%`, fill = as.factor(SEED))) + 
+  geom_point(shape = 21, size = 4, color = "black") + 
+  scale_fill_manual(values = colors_16) +  
+  theme_minimal() + labs(title = "Distance Traveled to 1st Round Matchup vs. Win Rate",
+    fill = "Seed")
+```
+
+
+# 16. Shot Heat Map
+
+```{r}
+splits <- csv_data$`Shooting Splits`
+heat_index <- csv_data$`Heat Check Tournament Index`
+splits <- splits %>%
+  left_join(heat_index, by = c("TEAM NO", "TEAM"))
+top_splits <- splits %>%
+  filter(SEED <= 4)
+
+```
+
+```{r}
+
+# --- Court Dimensions ---
+width = 50
+height = 94 / 2
+key_height = 19
+inner_key_width = 12
+outer_key_width = 16
+backboard_width = 6
+backboard_offset = 4
+neck_length = 0.5
+hoop_radius = 0.75
+hoop_center_y = backboard_offset + neck_length + hoop_radius
+three_point_radius = 23.75
+three_point_side_radius = 22
+three_point_side_height = 14
+
+# --- Court Themes ---
+court_themes = list(
+  light = list(
+    court = 'floralwhite',
+    lines = '#999999',
+    text = '#222222',
+    made = '#00bfc4',
+    missed = '#f8766d',
+    hex_border_size = 1,
+    hex_border_color = "#000000"
+  ),
+  dark = list(
+    court = '#000004',
+    lines = '#999999',
+    text = '#f0f0f0',
+    made = '#00bfc4',
+    missed = '#f8766d',
+    hex_border_size = 0,
+    hex_border_color = "#000000"
+  ),
+  ppt = list(
+    court = 'gray20',
+    lines = 'white',
+    text = '#f0f0f0',
+    made = '#00bfc4',
+    missed = '#f8766d',
+    hex_border_size = 0,
+    hex_border_color = "gray20"
+  )
+)
+
+# --- Circle points function ---
+circle_points = function(center = c(0, 0), radius = 1, npoints = 360) {
+  angles = seq(0, 2 * pi, length.out = npoints)
+  return(data.frame(x = center[1] + radius * cos(angles),
+                    y = center[2] + radius * sin(angles)))
+}
+
+
+# Court plot creation (adjusted for FG% data by zone)
+plot_court = function(filtered_data, court_theme = court_themes$dark) {
+  # Define zones with the respective coordinates for each zone
+  zone_coords <- data.frame(
+    zone = c("DUNKS FG%", "CLOSE TWOS FG%", "FARTHER TWOS FG%", "THREES FG%"),
+    x_min = c(-5, -10, -15, -23),  # X starting points for each zone
+    x_max = c(5, 10, 15, 23),      # X ending points for each zone
+    y_min = c(0, 5, 10, 10),       # Y starting points for each zone
+    y_max = c(10, 15, 20, 25)      # Y ending points for each zone
+  )
+  
+  # Merge the percentages from the filtered data with the zone coordinates
+  plot_data <- zone_coords %>%
+    mutate(percentage = c(filtered_data$`DUNKS FG%`, 
+                          filtered_data$`CLOSE TWOS FG%`, 
+                          filtered_data$`FARTHER TWOS FG%`, 
+                          filtered_data$`THREES FG%`)) %>%
+    arrange(zone)
+  
+  # Court elements (hoop, key, three-point line, etc.)
+  court_points = data.frame(
+    x = c(width / 2, width / 2, -width / 2, -width / 2, width / 2),
+    y = c(height, 0, 0, height, height),
+    desc = "perimeter"
+  )
+  
+  hoop = circle_points(center = c(0, hoop_center_y), radius = hoop_radius) %>%
+    mutate(desc = "hoop")
+  
+  # Plot the court and color zones based on percentages
+  ggplot() +
+    # Court lines
+    geom_path(data = court_points, aes(x = x, y = y, group = desc), color = court_theme$lines) +
+    geom_path(data = hoop, aes(x = x, y = y), color = "red") +
+    
+    # Color the zones based on shooting percentages
+    geom_rect(data = plot_data, 
+              aes(xmin = x_min, xmax = x_max, ymin = y_min, ymax = y_max, fill = percentage), 
+              color = "black", alpha = 0.6) +
+    
+    scale_fill_gradient(low = "white", high = "blue", name = "Shooting %") +
+    
+    # Add labels and legend
+    labs(title = paste("Shot Zone Heatmap for", filtered_data$TEAM, "-", filtered_data$YEAR.x)) +
+    theme_void() +
+    theme(legend.position = "bottom")
+}
+
+
+# UI definition
+ui <- fluidPage(
+  titlePanel("Shot Zone Heatmap"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("year", "Select Year", choices = unique(top_splits$YEAR.x)),
+      uiOutput("team_ui")  # Placeholder for dynamic team selection
+    ),
+    mainPanel(
+      plotOutput("shotChart")
+    )
+  )
+)
+
+
+# Server definition
+server <- function(input, output, session) {
+  
+  # Dynamically populate team dropdown based on selected year
+  output$team_ui <- renderUI({
+    req(input$year)  # Wait until year is selected
+    
+    # Get teams available for the selected year
+    available_teams <- top_splits %>%
+      filter(YEAR.x == input$year) %>%
+      pull(TEAM) %>%
+      unique()
+    
+    selectInput("team", "Select Team", choices = available_teams)
+  })
+  
+  # Render plot
+  output$shotChart <- renderPlot({
+    req(input$team, input$year)
+    
+    filtered_data <- top_splits %>%
+      filter(TEAM == input$team, YEAR.x == input$year)
+    
+    plot_court(filtered_data)
+  })
+}
+
+
+# Run the app
+shinyApp(ui = ui, server = server)
+
+
+```
